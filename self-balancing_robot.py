@@ -52,15 +52,15 @@ yaw_PID = PID(kp = 0.9, ki = 2, kd = 0.01)
 
 state_active = False
 lastTime = time.ticks_us()
-pitch = (hub.motion_sensor.tilt_angles()[2] - 90)
+pitch = (hub.motion_sensor.tilt_angles()[2] / 10 - 90)
 #pitch = (hub.motion.yaw_pitch_roll()[2]-90)
 
 while (True):
     dt = time.ticks_diff(time.ticks_us(), lastTime) * 0.000001
     lastTime = time.ticks_us()
 
-    accel = hub.motion_sensor.acceleration()
-    gyroPitch = pitch + hub.motion_sensor.angular_velocity()[1] * dt
+    accel = hub.motion_sensor.acceleration(False)
+    gyroPitch = pitch + (hub.motion_sensor.angular_velocity(False)[1] / 10) * dt
 #    accel = hub.motion.accelerometer()
 #    gyroPitch = pitch + hub.motion.gyroscope()[1] * dt
     accelPitch = -math.atan2(accel[2], math.sqrt(accel[0]*accel[0] + accel[1]*accel[1])) * RAD2DEG
