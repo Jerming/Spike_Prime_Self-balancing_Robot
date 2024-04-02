@@ -1,6 +1,5 @@
 from hub import port
 import math
-import hub
 import time
 import motor
 
@@ -26,51 +25,36 @@ def clamp(value, min_value, max_value):
     return min(max(round(value), min_value), max_value)
 
 def motor_pwm(main, correction = 0):
-    motor.set_duty_cycle(port.B, clamp(main - correction, -9999, 9999))
-    motor.set_duty_cycle(port.F, -clamp(main + correction, -9999, 9999))
-#    hub.port.B.pwm(clamp(main - correction, -127, 127))
-#    hub.port.F.pwm(-clamp(main + correction, -127, 127))
+    motor.set_duty_cycle(port.B, clamp((main - correction), -9999, 9999))
+    motor.set_duty_cycle(port.F, -clamp((main + correction), -9999, 9999))
 
-def get_yaw():
-    return -(motor.relative_position(port.F) + motor.relative_position(port.B))
-#    return -(Motor('F').get_degrees_counted() + Motor('B').get_degrees_counted())
-def get_speed():
-    return (motor.velocity(port.F) - motor.velocity(port.B) ) /2
-#    return (Motor('F').get_speed() - Motor('B').get_speed()) / 2
-
-HPF = 0.995
+HPF = 0.999
 LPF = 1-HPF
 RAD2DEG = 180/math.pi
 
-neutral_pitch = 1.6
-speed_setpoint = 0 
+neutral_pitch = -1.6
+speed_setpoint = 0
 yaw_setpoint = 0
 
-pitch_PID = PID(kp = 13.5, ki = 155, kd = 0.19)
+pitch_PID = PID(kp = 1300, ki = 14000, kd = 19)
 speed_PID = PID(kp = 0.04, ki = 0.03, kd = 0.00055)
 yaw_PID = PID(kp = 0.9, ki = 2, kd = 0.01)
 
 state_active = False
 lastTime = time.ticks_us()
 pitch = (hub.motion_sensor.tilt_angles()[2] / 10 - 90)
-#pitch = (hub.motion.yaw_pitch_roll()[2]-90)
 
 while (True):
     dt = time.ticks_diff(time.ticks_us(), lastTime) * 0.000001
-    lastTime = time.ticks_us()
+    lastTime = time.ticks_us() * 1
 
-    accel = hub.motion_sensor.acceleration(False)
-    gyroPitch = pitch + (hub.motion_sensor.angular_velocity(False)[1] / 10) * dt
-#    accel = hub.motion.accelerometer()
-#    gyroPitch = pitch + hub.motion.gyroscope()[1] * dt
+    accel = hub.motion_sensor.acceleration(True)
+    gyroPitch = pitch + (hub.motion_sensor.angular_velocity(True)[0] / 10.0) * dt
     accelPitch = -math.atan2(accel[2], math.sqrt(accel[0]*accel[0] + accel[1]*accel[1])) * RAD2DEG
 
     pitch = HPF * gyroPitch + LPF * accelPitch
-    speed = get_speed()
-    yaw = get_yaw()
- #   speed = (hub.port.F.device.get()[0] - hub.port.B.device.get()[0]) / 2
- #   yaw = -(hub.port.B.device.get()[1] + hub.port.F.device.get()[1])
-
+    speed = (motor.velocity(port.F) - motor.velocity(port.B)) / 2
+    yaw = -(motor.relative_position(port.F) + motor.relative_position(port.B))
 
     if (state_active):
         if (abs(pitch)<45):
